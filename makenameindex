@@ -1,0 +1,31 @@
+if [ -z $1 ]; then
+echo usage: makenameindex infile
+echo 
+echo Produces a file infile.kix, suitable for importing in the preamble of 
+echo a LaTeX file, which provides the command \name\<key\>. Usually, \<key\> 
+echo will be a last name, and \name\<key\> will insert the last name in the 
+echo text as well as an index entry of the form last name, first name. The 
+echo file is generated from infile.txt, which contains lines of the form 
+echo
+echo last name, first name 
+echo key\|last name, first name 
+echo key@indexentry 
+echo
+echo key\|last name, first name is used to disambiguate people with the same 
+echo last name. key@indexentry is used to typeset \<key\> in the text
+echo but index indexentry, e.g., Euklid@Euclid.
+else
+echo makenameindex $1.txt, writing to $1.kix
+for key in `grep -o '^[^|@,]*' $1.txt` ; do
+if [ `grep -c "^$key[|@,]" $1.txt` -gt 1 ]; then
+	echo "Key $key defined more than once!"
+fi
+done
+echo "% $1.kix" > $1.kix
+echo "% Generated from $1.txt on `date`" >> $1.kix
+grep '|' $1.txt | sed 's/^\([^|]*\)|\([^,]*\), *\(.*\)/\\keyindexentry{\1}{\2}{\2, \3}/' >>$1.kix
+grep '@' $1.txt | grep -v '@.*@' | sed 's/^\([^@]*\)@\(.*\)/\\keyindexentry{\1}{\1}{\2}/' >>$1.kix
+grep '@' $1.txt | grep '@.*@' | sed 's/^\([^@]*\)@\([^@]*\)@\(.*\)/\\keyindexentry{\1}{\2}{\3}/' >>$1.kix
+grep -v '[|@]' $1.txt | sed 's/^\([^,]*\), *\(.*\)/\\keyindexentry{\1}{\1}{\1, \2}/' >>$1.kix
+sort -o $1.kix $1.kix 
+fi

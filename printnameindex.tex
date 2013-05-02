@@ -1,0 +1,24 @@
+\documentclass{article}
+
+\usepackage{longtable}
+\usepackage{keyindex}
+\makeindex
+\keyindexfile{nameindex.kix}
+\makeatletter
+
+\begin{document}
+\begin{center}
+{\Large\textbf{Listing of \@keyindexfile}}\\
+\today
+\end{center}
+
+\renewcommand{\keyindexentry}[3]{%
+\texttt{\detokenize{#1}} & 
+\name{#1} & 
+#3 \\}
+
+\begin{longtable}{lll}
+Key & Print as & Indexed as\\\hline
+\input{\@keyindexfile}
+\end{longtable}
+\end{document}

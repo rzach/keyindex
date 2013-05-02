@@ -1,0 +1,181 @@
+% \iffalse meta-comment
+%
+% Copyright (C) 2013 by Richard Zach <rzach@ucalgary.ca>
+% -------------------------------------------------------
+% 
+% This file may be distributed and/or modified under the
+% conditions of the LaTeX Project Public License, either version 1.2
+% of this license or (at your option) any later version.
+% The latest version of this license is in:
+%
+%    http://www.latex-project.org/lppl.txt
+%
+% and version 1.2 or later is part of all distributions of LaTeX 
+% version 1999/12/01 or later.
+%
+% \fi
+%
+% \iffalse
+%<*driver>
+\ProvidesFile{keyindex.sty}
+%</driver>
+%<package>\NeedsTeXFormat{LaTeX2e}
+%<package>\ProvidesPackage{keyindex}
+%<*package>
+    [2013/05/01 0.2 Index entries by key lookup]
+%</package>
+%
+%<*driver>
+\documentclass{ltxdoc}
+\usepackage{keyindex}
+\EnableCrossrefs         
+\CodelineIndex
+\RecordChanges
+\begin{document}
+  \DocInput{keyindex.dtx}
+  \PrintChanges
+  \PrintIndex
+\end{document}
+%</driver>
+% \fi
+%
+% \CheckSum{0}
+%
+% \CharacterTable
+%  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
+%   Lower-case    \a\b\c\d\e\f\g\h\i\j\k\l\m\n\o\p\q\r\s\t\u\v\w\x\y\z
+%   Digits        \0\1\2\3\4\5\6\7\8\9
+%   Exclamation   \!     Double quote  \"     Hash (number) \#
+%   Dollar        \$     Percent       \%     Ampersand     \&
+%   Acute accent  \'     Left paren    \(     Right paren   \)
+%   Asterisk      \*     Plus          \+     Comma         \,
+%   Minus         \-     Point         \.     Solidus       \/
+%   Colon         \:     Semicolon     \;     Less than     \<
+%   Equals        \=     Greater than  \>     Question mark \?
+%   Commercial at \@     Left bracket  \[     Backslash     \\
+%   Right bracket \]     Circumflex    \^     Underscore    \_
+%   Grave accent  \`     Left brace    \{     Vertical bar  \|
+%   Right brace   \}     Tilde         \~}
+%
+%
+% \changes{v0.2}{2013/05/01}{Initial beta version}
+%
+% \GetFileInfo{keyindex.sty}
+%
+% \DoNotIndex{\newcommand,\newenvironment}
+% 
+%
+% \title{The \textsf{keyindex} package\thanks{This document
+%   corresponds to \textsf{keyindex}~\fileversion, dated \filedate.}}
+% \author{Richard Zach \\ \texttt{rzach@ucalgary.ca}}
+%
+% \maketitle
+%
+% \section{Introduction}
+
+% The |keyindex| package provides functionality for producing an index
+% without directly entering index entries into the text using the
+% |index| command, but instead by looking up short keys and printing a
+% predefined string in the main text and adding a corresponding index
+% entry. The standard use case is the production of an index of name:
+% Rather than having to write in the text, e.g.,
+% ``|Einstein\index{Einstein, Albert}|'' every time, write
+% ``|\keyindex{Einstein}|,'' which produces ``Einstein'' in the text
+% and an index entry under ``Einstein, Albert''.  Of course, the
+% correct index entries must be collected somewhere.
+
+% \section{Interactions} 
+
+% |keyindex| requires the |ifthen| package.
+
+% \section{Usage} 
+
+% \DescribeMacro{\keyindex} |\keyindex|\marg{key}\oarg{index option}
+% prints the text associated with index key \meta{key} (using the hook
+% |\keyindexprint|) followed by an index entry for \meta{key}. The
+% index entry is generated using the hook |\keyindexcommand| and the
+% optional argument \meta{indexoption} is added to the argument of
+% |\keyindexcommand| after a \verb+|+. For instance,
+% |\keyindex[(]{Einstein}| might produce \begin{center}
+% \verb+Einstein\index{Einstein, Albert|(}+.\end{center}
+
+% \DescribeMacro{\keyindexfile} |\keyindexfile|\marg{file} will load
+% the indexkey definitions from \meta{file}|.kix|, which is assumed to
+% contain only alist of lines of the form \begin{center}|\keyindexentry|
+% \marg{key}\marg{print text}\marg{index text}\end{center}.
+
+% \StopEventually{} \section{Implementation} \subsection{Setup} \begin{macrocode}
+\RequirePackage{ifthen}
+%    \end{macrocode}
+% |\keyindexfile{#1}|
+% sets name of index entry definition file to use
+% default is \jobname.kix
+%    \begin{macrocode}
+\newcommand*{\keyindexfile}[1]{%
+  \renewcommand*{\@keyindexfile}{#1}}
+\newcommand*{\@keyindexfile}{\jobname.kix}
+%    \end{macrocode}
+% |\keyindexprint{#1}| prints and index key;
+% default: just prints argument.
+%    \begin{macrocode}
+\newcommand*{\keyindexprint}[1]{#1}
+%    \end{macrocode}
+% |\missingkeyindexformat{#1}| print index key when not defined
+% by default, |\textbf|
+%    \begin{macrocode}
+\newcommand*{\missingkeyindexprint}[1]{%
+  \textbf{#1}}
+%    \end{macrocode}
+% |\keyindexcommand{#1}|
+% Command to add index entry; by default, |\index{#1}| but can be redefined
+%    \begin{macrocode}
+\newcommand*{\keyindexcommand}[1]{\index{#1}}
+%    \end{macrocode}
+% At the beginning of the document, we read the index key definition file
+%    \begin{macrocode}
+\AtBeginDocument{%
+  \InputIfFileExists{\@keyindexfile}{%
+    \PackageInfo{keyindex}{Using index key definition file
+      \@keyindexfile.}}{%
+    \PackageWarning{keyindex}{No index key definition file
+      \@keyindexfile!}}}
+%    \end{macrocode}
+% |\keyindex[#1]{#2}|
+% |#1| optional argument to add to index entry
+% |#2| index key
+% Calls \verb+\kix@<index key>{|#1}+ or |\kix@<index key>{}| if |#1| empty
+%    \begin{macrocode}
+\newcommand*{\keyindex}[2][]{\@ifundefined{kix@\detokenize{#2}}{%
+    \PackageWarning{keyindex}{Index key \detokenize{#2}
+      undefined}%
+    \missingkeyindexprint{#2}}{%
+    \ifthenelse{\equal{#1}{}}{%
+      \@nameuse{kix@\detokenize{#2}}{}}{%
+      \@nameuse{kix@\detokenize{#2}}{|#1}}}}
+
+\let\name\keyindex
+%    \end{macrocode}
+% |\keyindexentry{#1}{#2}{#3}|
+% |#1| key
+% |#2| text to be printed
+% |#3| txt to be indexed
+% defines a command |\idx@<key>##1| which calls |\@keyindex#2#3##1|
+%    \begin{macrocode}
+\newcommand*{\keyindexentry}[3]{%
+  \@ifundefined{kix@\detokenize{#1}}{%
+    \@namedef{kix@\detokenize{#1}}##1{%
+      \@keyindex{#2}{#3}{##1}}}{%
+    \PackageWarning{keyindex}{Duplicate definition for keyindex key
+      \detokenize{#1} ignored}}}
+%    \end{macrocode}
+% |\@keyindex#1#2#3|
+% prints |#1|
+% indexes |#2#3|
+%    \begin{macrocode}
+\newcommand*{\@keyindex}[3]{%
+  \keyindexprint{#1}%
+  \keyindexcommand{#2#3}}
+%    \end{macrocode}
+% \Finale
+% \PrintChanges
+\endinput

@@ -1,0 +1,68 @@
+\ProvidesPackage{keyindex}
+
+\RequirePackage{ifthen}
+
+% \keyindexfile{#1}
+% sets name of index entry definition file to use
+% default is \jobname.nix
+\newcommand*{\keyindexfile}[1]{%
+  \renewcommand*{\@keyindexfile}{#1}}
+\newcommand*{\@keyindexfile}{\jobname.kix}
+
+% keyindexprint{#1}
+% command to print index key
+% default: just prints argument
+\newcommand*{\keyindexprint}[1]{#1}
+
+% missingkeyindexformat{#1}
+% command to print index key when not defined
+% by default, \textbf
+\newcommand*{\missingkeyindexprint}[1]{%
+  \textbf{#1}}
+
+% \keyindexcommand{#1}
+% by default, \index{#1} but can be redefined
+\newcommand*{\keyindexcommand}[1]{\index{#1}}
+
+% at \begin{document}, we read the index key definition file
+\AtBeginDocument{%
+  \InputIfFileExists{\@keyindexfile}{%
+    \PackageInfo{keyindex}{Using index key definition file
+      \@keyindexfile.}}{%
+    \PackageWarning{keyindex}{No index key definition file
+      \@keyindexfile!}}}
+
+% \name[#1]{#2}
+% #1 optional argument to add to index entry (after a | directive)
+% #2 index key
+% Calls \kix@<index key>{|#1} or \kix@<index key>{} if #1 empty
+
+\newcommand*{\keyindex}[2][]{\@ifundefined{kix@\detokenize{#2}}{%
+    \PackageWarning{keyindex}{Index key \detokenize{#2}
+      undefined}%
+    \missingkeyindexprint{#2}}{%
+    \ifthenelse{\equal{#1}{}}{%
+      \@nameuse{kix@\detokenize{#2}}{}}{%
+      \@nameuse{kix@\detokenize{#2}}{|#1}}}}
+
+\let\name\keyindex
+
+% \keyindexentry{#1}{#2}{#3}
+% #1 key
+% #2 text to be printed
+% #3 txt to be indexed
+% defines a command \idx@<key>##1 which calls \@keyindex#2#3##1
+
+\newcommand*{\keyindexentry}[3]{%
+  \@ifundefined{kix@\detokenize{#1}}{%
+    \@namedef{kix@\detokenize{#1}}##1{%
+      \@keyindex{#2}{#3}{##1}}}{%
+    \PackageWarning{keyindex}{Duplicate definition for keyindex key
+      \detokenize{#1} ignored}}}
+
+% \@keyindex#1#2#3
+% prints #1
+% indexes #2#3
+\newcommand*{\@keyindex}[3]{%
+  \keyindexprint{#1}%
+  \keyindexcommand{#2#3}}
