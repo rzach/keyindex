@@ -1,17 +1,17 @@
 % \iffalse meta-comment
 %
-% Copyright (C) 2013 by Richard Zach <rzach@ucalgary.ca>
+% Copyright (C) 2019 by Richard Zach <rzach@ucalgary.ca>
 % -------------------------------------------------------
 % 
 % This file may be distributed and/or modified under the
-% conditions of the LaTeX Project Public License, either version 1.2
+% conditions of the LaTeX Project Public License, either version 1.3c
 % of this license or (at your option) any later version.
 % The latest version of this license is in:
 %
 %    http://www.latex-project.org/lppl.txt
 %
-% and version 1.2 or later is part of all distributions of LaTeX 
-% version 1999/12/01 or later.
+% and version 1.3 or later is part of all distributions of LaTeX 
+% version 2005/12/01 or later.
 %
 % \fi
 %
@@ -22,19 +22,18 @@
 %<package>\NeedsTeXFormat{LaTeX2e}
 %<package>\ProvidesPackage{keyindex}
 %<*package>
-    [2013/05/01 0.2 Index entries by key lookup]
+    [2019/04/05 1.0 Index entries by key lookup]
 %</package>
 %
 %<*driver>
 \documentclass{ltxdoc}
 \usepackage{keyindex}
-\EnableCrossrefs         
+\usepackage[hidelinks]{hyperref}
 \CodelineIndex
 \RecordChanges
 \begin{document}
   \DocInput{keyindex.dtx}
   \PrintChanges
-  \PrintIndex
 \end{document}
 %</driver>
 % \fi
@@ -58,76 +57,106 @@
 %   Right brace   \}     Tilde         \~}
 %
 %
-% \changes{v0.2}{2013/05/01}{Initial beta version}
+% \changes{v1.0}{2019/04/05}{Initial version}
 %
 % \GetFileInfo{keyindex.sty}
 %
-% \DoNotIndex{\newcommand,\newenvironment}
-% 
+% \DoNotIndex{\newcommand,\newenvironment} 
 %
 % \title{The \textsf{keyindex} package\thanks{This document
 %   corresponds to \textsf{keyindex}~\fileversion, dated \filedate.}}
-% \author{Richard Zach \\ \texttt{rzach@ucalgary.ca}}
+% \author{\href{http://richardzach.org/}{Richard Zach}}
+% \date{}
 %
 % \maketitle
 %
 % \section{Introduction}
-
+%
 % The |keyindex| package provides functionality for producing an index
 % without directly entering index entries into the text using the
-% |index| command, but instead by looking up short keys and printing a
+% |\index| command, but instead by looking up short keys and printing a
 % predefined string in the main text and adding a corresponding index
-% entry. The standard use case is the production of an index of name:
+% entry. The standard use case is the production of an index of names:
 % Rather than having to write in the text, e.g.,
 % ``|Einstein\index{Einstein, Albert}|'' every time, write
 % ``|\keyindex{Einstein}|,'' which produces ``Einstein'' in the text
 % and an index entry under ``Einstein, Albert''.  Of course, the
 % correct index entries must be collected somewhere.
-
+%
+% The package distribution also includes a bash script |makenameindex|
+% which produces a key index file for use with |keyindex| from a text
+% file with entries of the form 
+% \begin{quote}
+% \meta{last name}, \meta{first name}\\
+% \meta{key}\verb+|+\meta{last name}, \meta{first name}\\
+% \meta{key}\verb+@+\meta{indexentry}
+% \end{quote}
+%
 % \section{Interactions} 
-
+%
 % |keyindex| requires the |ifthen| package.
-
+%
 % \section{Usage} 
-
-% \DescribeMacro{\keyindex} |\keyindex|\marg{key}\oarg{index option}
-% prints the text associated with index key \meta{key} (using the hook
-% |\keyindexprint|) followed by an index entry for \meta{key}. The
+%
+% \DescribeMacro{\keyindex}
+% |\keyindex|\oarg{index option}\marg{key}
+% prints the text associated with index key \meta{key} (using the hooks
+% |\keyindexformat| and |\missingkeyindexformat|) followed by an index
+% entry for \meta{key}. The
 % index entry is generated using the hook |\keyindexcommand| and the
-% optional argument \meta{indexoption} is added to the argument of
+% optional argument \meta{index option} is added to the argument of
 % |\keyindexcommand| after a \verb+|+. For instance,
-% |\keyindex[(]{Einstein}| might produce \begin{center}
+% |\keyindex[(]{Einstein}| might produce the same as \begin{center}
 % \verb+Einstein\index{Einstein, Albert|(}+.\end{center}
-
+% \DescribeMacro{\keyindexprint}
+% \DescribeMacro{\keyindexonly}
+% |\keyindexprint|\marg{key} prints only the text corresponding to 
+% \meta{key}, but doesn't add anything to the index. 
+% |\keyindexonly|\marg{key}\oarg{index option} only adds the index entry
+% but doesn't print anything in the text.
+%
 % \DescribeMacro{\keyindexfile} |\keyindexfile|\marg{file} will load
-% the indexkey definitions from \meta{file}|.kix|, which is assumed to
-% contain only alist of lines of the form \begin{center}|\keyindexentry|
-% \marg{key}\marg{print text}\marg{index text}\end{center}.
-
-% \StopEventually{} \section{Implementation} \subsection{Setup} \begin{macrocode}
+% the index key definitions from \meta{file}|.kix|, which is assumed to
+% contain only a list of lines of the form \begin{center}|\keyindexentry|
+% \marg{key}\marg{print text}\marg{index text}\end{center}
+% If it is not called, |keyindex| will use
+% |\jobname.kix| as default. This must be used in the preamble.
+%
+% \DescribeMacro{\keyindexformat}
+% \DescribeMacro{\missingkeyindexformat}
+% \DescribeMacro{\keyindexcommand}
+% These are hooks to carry out the formatting in the text of the text
+% corresponding to an index entry, or adding the entry to the index.
+% They can be redefined using |\renewcommand|. By default,
+% |\keyindexformat|\marg{text} just adds \meta{text} to the document,
+% |\missingkeyindexformat|\marg{text} adds |\textbf|\marg{text}, and
+% |\keyindexcommand|\marg{text} issues |\index|\marg{text}.
+% \StopEventually{}
+% \section{Implementation}
+% \subsection{Setup}
+% \begin{macrocode}
 \RequirePackage{ifthen}
 %    \end{macrocode}
-% |\keyindexfile{#1}|
-% sets name of index entry definition file to use
-% default is \jobname.kix
+% |\keyindexfile| sets |\@keyindexfile| to its argument; we set
+% |\@keyindexfile| to default to |\jobname.kix|
 %    \begin{macrocode}
 \newcommand*{\keyindexfile}[1]{%
   \renewcommand*{\@keyindexfile}{#1}}
 \newcommand*{\@keyindexfile}{\jobname.kix}
 %    \end{macrocode}
-% |\keyindexprint{#1}| prints and index key;
+% |\keyindexformat| formats index text;
 % default: just prints argument.
 %    \begin{macrocode}
-\newcommand*{\keyindexprint}[1]{#1}
+\newcommand*{\keyindexformat}[1]{#1}
 %    \end{macrocode}
-% |\missingkeyindexformat{#1}| print index key when not defined
-% by default, |\textbf|
+% |\missingkeyindexformat| prints index key when not defined;
+% by default, |\textbf|.
 %    \begin{macrocode}
-\newcommand*{\missingkeyindexprint}[1]{%
+\newcommand*{\missingkeyindexformat}[1]{%
   \textbf{#1}}
 %    \end{macrocode}
-% |\keyindexcommand{#1}|
-% Command to add index entry; by default, |\index{#1}| but can be redefined
+% |\keyindexcommand|\marg{index text} adds \marg{index text} to the
+% index; by default, it does |\index|\marg{index text} but can be redefined.
 %    \begin{macrocode}
 \newcommand*{\keyindexcommand}[1]{\index{#1}}
 %    \end{macrocode}
@@ -140,41 +169,37 @@
     \PackageWarning{keyindex}{No index key definition file
       \@keyindexfile!}}}
 %    \end{macrocode}
-% |\keyindex[#1]{#2}|
-% |#1| optional argument to add to index entry
-% |#2| index key
-% Calls \verb+\kix@<index key>{|#1}+ or |\kix@<index key>{}| if |#1| empty
+% |\keyindex|\oarg{index option}\marg{key} prints text for key \meta{key}, and indexes it (with
+% \verb+|+\meta{index option}, if present). Printing is done by |\keyindexprint|,
+% indexing by |\keyindexonly|. If the key is undefined, we issue a
+% warning and print the key (using |\missingkeyindexformat|), not its replacement text. 
 %    \begin{macrocode}
-\newcommand*{\keyindex}[2][]{\@ifundefined{kix@\detokenize{#2}}{%
-    \PackageWarning{keyindex}{Index key \detokenize{#2}
+\newcommand*{\keyindexprint}[1]{\@ifundefined{kix@e@\detokenize{#1}}{%
+    \PackageWarning{keyindex}{Index key \detokenize{#1}
       undefined}%
-    \missingkeyindexprint{#2}}{%
+    \missingkeyindexformat{#1}}{%
+    \keyindexformat{\@nameuse{kix@e@\detokenize{#1}}}}}
+\newcommand*{\keyindexonly}[2][]{\@ifundefined{kix@e@\detokenize{#2}}{%
+    \PackageWarning{keyindex}{Index key \detokenize{#2}
+      undefined}}{%
     \ifthenelse{\equal{#1}{}}{%
-      \@nameuse{kix@\detokenize{#2}}{}}{%
-      \@nameuse{kix@\detokenize{#2}}{|#1}}}}
-
-\let\name\keyindex
+      \keyindexcommand{\@nameuse{kix@i@\detokenize{#2}}}}{%
+      \keyindexcommand{\@nameuse{kix@i@\detokenize{#2}}|#1}}}}
+\newcommand{\keyindex}[2][]{\keyindexprint{#2}\keyindexonly[#1]{#2}}
 %    \end{macrocode}
-% |\keyindexentry{#1}{#2}{#3}|
-% |#1| key
-% |#2| text to be printed
-% |#3| txt to be indexed
-% defines a command |\idx@<key>##1| which calls |\@keyindex#2#3##1|
+% The file |\@keyindexfile| must contain lines of the form 
+% |\keyindexentry|\marg{key}\marg{text}\marg{index entry}. It is read at
+% the beginning of the document and for each key, defines commands
+% |\kix@e@|\meta{key} and |\kix@i@|\meta{key} which evaluate to \meta{text}
+% and \meta{index entry}, respectively. Duplicate definitions are
+% ignored but generate a warning.
 %    \begin{macrocode}
 \newcommand*{\keyindexentry}[3]{%
-  \@ifundefined{kix@\detokenize{#1}}{%
-    \@namedef{kix@\detokenize{#1}}##1{%
-      \@keyindex{#2}{#3}{##1}}}{%
+  \@ifundefined{kix@e@\detokenize{#1}}{%
+    \@namedef{kix@e@\detokenize{#1}}{#2}%
+    \@namedef{kix@i@\detokenize{#1}}{#3}}{%
     \PackageWarning{keyindex}{Duplicate definition for keyindex key
       \detokenize{#1} ignored}}}
-%    \end{macrocode}
-% |\@keyindex#1#2#3|
-% prints |#1|
-% indexes |#2#3|
-%    \begin{macrocode}
-\newcommand*{\@keyindex}[3]{%
-  \keyindexprint{#1}%
-  \keyindexcommand{#2#3}}
 %    \end{macrocode}
 % \Finale
 % \PrintChanges
